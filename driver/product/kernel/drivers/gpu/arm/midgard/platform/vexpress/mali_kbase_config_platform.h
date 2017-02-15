@@ -73,10 +73,10 @@
 #define PLATFORM_FUNCS (NULL)
 
 /**
- * Protected mode switch
+ * Secure mode switch
  *
- * Attached value: pointer to @ref kbase_protected_ops
+ * Attached value: pointer to @ref kbase_secure_ops
  */
-#define PROTECTED_CALLBACKS (NULL)
+#define SECURE_CALLBACKS (NULL)
 
 extern struct kbase_pm_callback_conf pm_callbacks;

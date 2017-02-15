@@ -175,7 +175,7 @@ void kbase_job_slot_softstop_swflags(struct kbase_device *kbdev, int js,
 void kbase_job_slot_hardstop(struct kbase_context *kctx, int js,
 		struct kbase_jd_atom *target_katom);
 void kbase_job_check_enter_disjoint(struct kbase_device *kbdev, u32 action,
-		base_jd_core_req core_reqs, struct kbase_jd_atom *target_katom);
+		u16 core_reqs, struct kbase_jd_atom *target_katom);
 void kbase_job_check_leave_disjoint(struct kbase_device *kbdev,
 		struct kbase_jd_atom *target_katom);
 
@@ -193,15 +193,15 @@ void kbase_finish_soft_job(struct kbase_jd_atom *katom);
 void kbase_cancel_soft_job(struct kbase_jd_atom *katom);
 void kbase_resume_suspended_soft_jobs(struct kbase_device *kbdev);
 void kbasep_add_waiting_soft_job(struct kbase_jd_atom *katom);
-void kbasep_remove_waiting_soft_job(struct kbase_jd_atom *katom);
-int kbase_soft_event_update(struct kbase_context *kctx,
-			    u64 event,
-			    unsigned char new_status);
 
 bool kbase_replay_process(struct kbase_jd_atom *katom);
 
-void kbasep_soft_job_timeout_worker(unsigned long data);
+enum hrtimer_restart kbasep_soft_event_timeout_worker(struct hrtimer *timer);
 void kbasep_complete_triggered_soft_events(struct kbase_context *kctx, u64 evt);
+int kbasep_read_soft_event_status(
+		struct kbase_context *kctx, u64 evt, unsigned char *status);
+int kbasep_write_soft_event_status(
+		struct kbase_context *kctx, u64 evt, unsigned char new_status);
 
 /* api used internally for register access. Contains validation and tracing */
 void kbase_device_trace_register_access(struct kbase_context *kctx, enum kbase_reg_access_type type, u16 reg_offset, u32 reg_value);
@@ -545,5 +545,26 @@ void kbasep_trace_dump(struct kbase_device *kbdev);
  */
 void kbase_set_driver_inactive(struct kbase_device *kbdev, bool inactive);
 #endif /* CONFIG_MALI_DEBUG */
+
+#ifndef RESET0_LEVEL
+extern u32  override_value_aml;
+extern void *reg_base_hiubus;
+#define RESET0_MASK    0x01
+#define RESET1_MASK    0x02
+#define RESET2_MASK    0x03
+
+#define RESET0_LEVEL    0x10
+#define RESET1_LEVEL    0x11
+#define RESET2_LEVEL    0x12
+#define Rd(r)                           readl((reg_base_hiubus) + ((r)<<2))
+#define Wr(r, v)                        writel((v), ((reg_base_hiubus) + ((r)<<2)))
+#define Mali_WrReg(unit, core, regnum, value)   kbase_reg_write(kbdev, (regnum), (value), NULL)
+#define Mali_RdReg(unit, core, regnum)          kbase_reg_read(kbdev, (regnum), NULL)
+#define stimulus_print   printk
+#define stimulus_display printk
+#define Mali_pwr_on(x)   Mali_pwr_on_with_kdev(kbdev, (x))
+#define Mali_pwr_off(x)  Mali_pwr_off_with_kdev(kbdev, (x))
+#endif
+
 
 #endif

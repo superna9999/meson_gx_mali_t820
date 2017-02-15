@@ -25,6 +25,7 @@
 #include "mali_kbase_pm_ca_fixed.h"
 #if !MALI_CUSTOMER_RELEASE
 #include "mali_kbase_pm_ca_random.h"
+#include "mali_kbase_pm_ca_demand.h"
 #endif
 
 #include "mali_kbase_pm_always_on.h"
@@ -131,6 +132,7 @@ union kbase_pm_ca_policy_data {
 	struct kbasep_pm_ca_policy_fixed fixed;
 #if !MALI_CUSTOMER_RELEASE
 	struct kbasep_pm_ca_policy_random random;
+	struct kbasep_pm_ca_policy_demand demand;
 #endif
 };
 
@@ -192,14 +194,12 @@ union kbase_pm_ca_policy_data {
  * @gpu_poweroff_pending: number of poweroff timer ticks until the GPU is
  *                        powered off
  * @shader_poweroff_pending_time: number of poweroff timer ticks until shaders
- *                        and/or timers are powered off
+ *                        are powered off
  * @gpu_poweroff_timer: Timer for powering off GPU
  * @gpu_poweroff_wq:   Workqueue to power off GPU on when timer fires
  * @gpu_poweroff_work: Workitem used on @gpu_poweroff_wq
  * @shader_poweroff_pending: Bit mask of shaders to be powered off on next
  *                           timer callback
- * @tiler_poweroff_pending: Bit mask of tilers to be powered off on next timer
- *                          callback
  * @poweroff_timer_needed: true if the poweroff timer is currently required,
  *                         false otherwise
  * @poweroff_timer_running: true if the poweroff timer is currently running,
@@ -276,7 +276,6 @@ struct kbase_pm_backend_data {
 	struct work_struct gpu_poweroff_work;
 
 	u64 shader_poweroff_pending;
-	u64 tiler_poweroff_pending;
 
 	bool poweroff_timer_needed;
 	bool poweroff_timer_running;
@@ -383,7 +382,10 @@ struct kbase_pm_policy {
 
 enum kbase_pm_ca_policy_id {
 	KBASE_PM_CA_POLICY_ID_FIXED = 1,
-	KBASE_PM_CA_POLICY_ID_RANDOM
+#if !MALI_CUSTOMER_RELEASE
+	KBASE_PM_CA_POLICY_ID_RANDOM,
+	KBASE_PM_CA_POLICY_ID_DEMAND,
+#endif
 };
 
 typedef u32 kbase_pm_ca_policy_flags;

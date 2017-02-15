@@ -221,7 +221,6 @@ out:
 			kfree(mapping);
 		}
 		fput(kctx_file);
-		kfree(mem_data);
 	}
 	seq_release(i, file);
 	return ret;
