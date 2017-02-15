@@ -102,6 +102,9 @@ EXPORT_SYMBOL(shared_kernel_test_data);
 #endif /* MALI_UNIT_TEST */
 
 static int kbase_dev_nr;
+#ifdef CONFIG_MALI_MIDGARD_DVFS
+extern int mali_pm_statue;
+#endif
 
 static DEFINE_MUTEX(kbase_dev_list_lock);
 static LIST_HEAD(kbase_dev_list);
@@ -3678,6 +3681,9 @@ static int kbase_device_suspend(struct device *dev)
 		(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 	devfreq_suspend_device(kbdev->devfreq);
 #endif
+#if defined(CONFIG_MALI_MIDGARD_DVFS)
+	mali_pm_statue = 1;
+#endif
 
 	kbase_pm_suspend(kbdev);
 	return 0;
@@ -3704,6 +3710,9 @@ static int kbase_device_resume(struct device *dev)
 		(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 	devfreq_resume_device(kbdev->devfreq);
 #endif
+#if defined(CONFIG_MALI_MIDGARD_DVFS)
+	mali_pm_statue = 0;
+#endif
 	return 0;
 }
 
@@ -3727,6 +3736,9 @@ static int kbase_device_runtime_suspend(struct device *dev)
 #if defined(CONFIG_PM_DEVFREQ) && \
 		(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 	devfreq_suspend_device(kbdev->devfreq);
+#endif
+#if defined(CONFIG_MALI_MIDGARD_DVFS)
+	mali_pm_statue = 1;
 #endif
 
 	if (kbdev->pm.backend.callback_power_runtime_off) {
@@ -3764,6 +3776,9 @@ static int kbase_device_runtime_resume(struct device *dev)
 		(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 	devfreq_resume_device(kbdev->devfreq);
 #endif
+#if defined(CONFIG_MALI_MIDGARD_DVFS)
+	mali_pm_statue = 0;
+#endif
 
 	return ret;
 }
@@ -3795,12 +3810,31 @@ static int kbase_device_runtime_idle(struct device *dev)
 	return 0;
 }
 #endif /* KBASE_PM_RUNTIME */
+#ifndef CONFIG_MALI_DEVFREQ
+static int mali_os_freeze(struct device *device)
+{
+	mali_dev_freeze();
+	return kbase_device_suspend(device);
+}
+
+static int mali_os_restore(struct device *device)
+{
+	mali_dev_restore();
+	return kbase_device_resume(device);
+}
+#endif
+
 
 /** The power management operations for the platform driver.
  */
 static const struct dev_pm_ops kbase_pm_ops = {
 	.suspend = kbase_device_suspend,
 	.resume = kbase_device_resume,
+#ifndef CONFIG_MALI_DEVFREQ
+	.freeze = mali_os_freeze,
+	.thaw = kbase_device_resume,
+	.restore = mali_os_restore,
+#endif
 #ifdef KBASE_PM_RUNTIME
 	.runtime_suspend = kbase_device_runtime_suspend,
 	.runtime_resume = kbase_device_runtime_resume,

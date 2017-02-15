@@ -183,6 +183,7 @@ kbase_pm_ca_list_policies(const struct kbase_pm_ca_policy * const **policies);
  * @return The current policy
  */
 const struct kbase_pm_policy *kbase_pm_get_policy(struct kbase_device *kbdev);
+int set_policy_by_name(struct kbase_device *kbdev, const char *name);
 
 /**
  * Change the policy to the one specified.

@@ -546,4 +546,25 @@ void kbasep_trace_dump(struct kbase_device *kbdev);
 void kbase_set_driver_inactive(struct kbase_device *kbdev, bool inactive);
 #endif /* CONFIG_MALI_DEBUG */
 
+#ifndef RESET0_LEVEL
+extern u32  override_value_aml;
+extern void *reg_base_hiubus;
+#define RESET0_MASK    0x01
+#define RESET1_MASK    0x02
+#define RESET2_MASK    0x03
+
+#define RESET0_LEVEL    0x10
+#define RESET1_LEVEL    0x11
+#define RESET2_LEVEL    0x12
+#define Rd(r)                           readl((reg_base_hiubus) + ((r)<<2))
+#define Wr(r, v)                        writel((v), ((reg_base_hiubus) + ((r)<<2)))
+#define Mali_WrReg(unit, core, regnum, value)   kbase_reg_write(kbdev, (regnum), (value), NULL)
+#define Mali_RdReg(unit, core, regnum)          kbase_reg_read(kbdev, (regnum), NULL)
+#define stimulus_print   printk
+#define stimulus_display printk
+#define Mali_pwr_on(x)   Mali_pwr_on_with_kdev(kbdev, (x))
+#define Mali_pwr_off(x)  Mali_pwr_off_with_kdev(kbdev, (x))
+#endif
+
+
 #endif

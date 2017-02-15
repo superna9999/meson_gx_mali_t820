@@ -22,7 +22,7 @@
  * Attached value: number in kHz
  * Default value: NA
  */
-#define GPU_FREQ_KHZ_MAX (5000)
+#define GPU_FREQ_KHZ_MAX (750000)
 /**
  * Minimum frequency GPU will be clocked at. Given in kHz.
  * This must be specified as there is no default value.
@@ -30,7 +30,7 @@
  * Attached value: number in kHz
  * Default value: NA
  */
-#define GPU_FREQ_KHZ_MIN (5000)
+#define GPU_FREQ_KHZ_MIN (100000)
 
 /**
  * CPU_SPEED_FUNC - A pointer to a function that calculates the CPU clock
@@ -68,9 +68,23 @@
  * Attached value: pointer to @ref kbase_platform_funcs_conf
  * Default value: See @ref kbase_platform_funcs_conf
  */
-#define PLATFORM_FUNCS (NULL)
+extern struct kbase_platform_funcs_conf dt_funcs_conf;
+#define PLATFORM_FUNCS (&dt_funcs_conf)
 
+/** Power model for IPA
+ *
+ * Attached value: pointer to @ref mali_pa_model_ops
+ */
+#ifdef CONFIG_DEVFREQ_THERMAL
+#define POWER_MODEL_CALLBACKS (&t83x_model_ops)
+extern struct devfreq_cooling_ops t83x_model_ops;
+#else
+#define POWER_MODEL_CALLBACKS (NULL)
+#endif
 extern struct kbase_pm_callback_conf pm_callbacks;
+
+void mali_dev_freeze(void);
+void mali_dev_restore(void);
 
 /**
  * Protected mode switch
