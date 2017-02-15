@@ -25,6 +25,7 @@
 #include "mali_kbase_pm_ca_fixed.h"
 #if !MALI_CUSTOMER_RELEASE
 #include "mali_kbase_pm_ca_random.h"
+#include "mali_kbase_pm_ca_demand.h"
 #endif
 
 #include "mali_kbase_pm_always_on.h"
@@ -131,6 +132,7 @@ union kbase_pm_ca_policy_data {
 	struct kbasep_pm_ca_policy_fixed fixed;
 #if !MALI_CUSTOMER_RELEASE
 	struct kbasep_pm_ca_policy_random random;
+	struct kbasep_pm_ca_policy_demand demand;
 #endif
 };
 
@@ -380,7 +382,10 @@ struct kbase_pm_policy {
 
 enum kbase_pm_ca_policy_id {
 	KBASE_PM_CA_POLICY_ID_FIXED = 1,
-	KBASE_PM_CA_POLICY_ID_RANDOM
+#if !MALI_CUSTOMER_RELEASE
+	KBASE_PM_CA_POLICY_ID_RANDOM,
+	KBASE_PM_CA_POLICY_ID_DEMAND,
+#endif
 };
 
 typedef u32 kbase_pm_ca_policy_flags;

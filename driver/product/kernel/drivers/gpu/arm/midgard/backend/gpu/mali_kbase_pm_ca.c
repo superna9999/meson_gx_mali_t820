@@ -26,7 +26,8 @@
 static const struct kbase_pm_ca_policy *const policy_list[] = {
 	&kbase_pm_ca_fixed_policy_ops,
 #if !MALI_CUSTOMER_RELEASE
-	&kbase_pm_ca_random_policy_ops
+	&kbase_pm_ca_demand_policy_ops,
+	&kbase_pm_ca_random_policy_ops,
 #endif
 };
 

@@ -554,6 +554,35 @@ const struct kbase_pm_policy *kbase_pm_get_policy(struct kbase_device *kbdev)
 
 KBASE_EXPORT_TEST_API(kbase_pm_get_policy);
 
+int set_policy_by_name(struct kbase_device *kbdev, const char *name)
+{
+	const struct kbase_pm_policy *new_policy = NULL;
+	const struct kbase_pm_policy *const *policy_list;
+	int policy_count;
+	int i;
+
+	policy_count = kbase_pm_list_policies(&policy_list);
+
+	for (i = 0; i < policy_count; i++) {
+		if (sysfs_streq(policy_list[i]->name, name)) {
+			new_policy = policy_list[i];
+			break;
+		}
+	}
+
+	if (!new_policy) {
+		printk("power_policy: policy not found\n");
+		return -EINVAL;
+	}
+	trace_printk("policy name=%s\n", name);
+
+	kbase_pm_set_policy(kbdev, new_policy);
+
+	return 0;
+}
+
+KBASE_EXPORT_TEST_API(set_policy_by_name);
+
 void kbase_pm_set_policy(struct kbase_device *kbdev,
 				const struct kbase_pm_policy *new_policy)
 {

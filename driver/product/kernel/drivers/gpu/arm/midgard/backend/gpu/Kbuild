@@ -41,6 +41,7 @@ BACKEND += \
 ifeq ($(MALI_CUSTOMER_RELEASE),0)
 BACKEND += \
 	backend/gpu/mali_kbase_pm_ca_random.c \
+	backend/gpu/mali_kbase_pm_ca_demand.c \
 	backend/gpu/mali_kbase_pm_demand_always_powered.c \
 	backend/gpu/mali_kbase_pm_fast_start.c
 endif
