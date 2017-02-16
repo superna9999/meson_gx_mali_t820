@@ -31,7 +31,9 @@
 #include <linux/version.h>
 #include <linux/dma-mapping.h>
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0))
 	#include <linux/dma-attrs.h>
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0) */
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)  */
 #ifdef CONFIG_DMA_SHARED_BUFFER
 #include <linux/dma-buf.h>
@@ -1184,7 +1186,10 @@ static struct kbase_va_region *kbase_mem_from_user_buffer(
 	/* We can't really store the page list because that would involve */
 	/* keeping the pages pinned - instead we pin/unpin around the job */
 	/* (as part of the external resources handling code) */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(4, 8, 0)
+	faulted_pages = get_user_pages(address, *va_pages,
+			reg->flags & KBASE_REG_GPU_WR, NULL, NULL);
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
 	faulted_pages = get_user_pages(current, current->mm, address, *va_pages,
 			reg->flags & KBASE_REG_GPU_WR, 0, NULL, NULL);
 #else
@@ -1853,8 +1858,13 @@ static int kbase_cpu_vm_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 
 	/* we don't use vmf->pgoff as it's affected by our mmap with
 	 * offset being a GPU VA or a cookie */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+	rel_pgoff = ((unsigned long)vmf->address - map->vm_start)
+			>> PAGE_SHIFT;
+#else
 	rel_pgoff = ((unsigned long)vmf->virtual_address - map->vm_start)
 			>> PAGE_SHIFT;
+#endif
 
 	kbase_gpu_vm_lock(map->kctx);
 	if (map->page_off + rel_pgoff >= map->alloc->nents)
@@ -2719,7 +2729,9 @@ void *kbase_va_alloc(struct kbase_context *kctx, u32 size, struct kbase_hwc_dma_
 	dma_addr_t  dma_pa;
 	struct kbase_va_region *reg;
 	phys_addr_t *page_array;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
+	unsigned long attrs;
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
 	DEFINE_DMA_ATTRS(attrs);
 #endif
 
@@ -2735,7 +2747,10 @@ void *kbase_va_alloc(struct kbase_context *kctx, u32 size, struct kbase_hwc_dma_
 		goto err;
 
 	/* All the alloc calls return zeroed memory */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
+	attrs = DMA_ATTR_WRITE_COMBINE;
+	va = dma_alloc_attrs(kctx->kbdev->dev, size, &dma_pa, GFP_KERNEL, attrs);
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
 	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
 	va = dma_alloc_attrs(kctx->kbdev->dev, size, &dma_pa, GFP_KERNEL, &attrs);
 #else
@@ -2784,7 +2799,9 @@ no_mmap:
 no_alloc:
 	kfree(reg);
 no_reg:
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
+	dma_free_attrs(kctx->kbdev->dev, size, va, dma_pa, attrs);
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
 	dma_free_attrs(kctx->kbdev->dev, size, va, dma_pa, &attrs);
 #else
 	dma_free_writecombine(kctx->kbdev->dev, size, va, dma_pa);
@@ -2798,7 +2815,9 @@ void kbase_va_free(struct kbase_context *kctx, struct kbase_hwc_dma_mapping *han
 {
 	struct kbase_va_region *reg;
 	int err;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
+	unsigned long attrs;
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
 	DEFINE_DMA_ATTRS(attrs);
 #endif
 
@@ -2816,7 +2835,11 @@ void kbase_va_free(struct kbase_context *kctx, struct kbase_hwc_dma_mapping *han
 	kbase_mem_phy_alloc_put(reg->gpu_alloc);
 	kfree(reg);
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0))
+	attrs = DMA_ATTR_WRITE_COMBINE;
+	dma_free_attrs(kctx->kbdev->dev, handle->size,
+			handle->cpu_va, handle->dma_pa, attrs);
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
 	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
 	dma_free_attrs(kctx->kbdev->dev, handle->size,
 			handle->cpu_va, handle->dma_pa, &attrs);
