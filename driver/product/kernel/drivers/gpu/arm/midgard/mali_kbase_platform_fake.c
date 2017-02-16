@@ -100,6 +100,8 @@ int kbase_platform_fake_register(void)
 		mali_device = NULL;
 		return err;
 	}
+
+	kbase_platform_prepare_device(mali_device);
 #endif /* CONFIG_OF */
 
 	err = platform_device_add(mali_device);

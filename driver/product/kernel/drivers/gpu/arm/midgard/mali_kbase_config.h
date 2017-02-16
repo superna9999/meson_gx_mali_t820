@@ -26,6 +26,7 @@
 #define _KBASE_CONFIG_H_
 
 #include <asm/page.h>
+#include <linux/platform_device.h>
 
 #include <mali_malisw.h>
 #include <mali_kbase_backend_config.h>
@@ -269,6 +270,11 @@ struct kbase_io_resources {
 struct kbase_platform_config {
 	const struct kbase_io_resources *io_resources;
 };
+
+/**
+ * @brief Prepares the platform_device structure before adding to the system
+ */
+void kbase_platform_prepare_device(struct platform_device *mali_device);
 
 #endif /* CONFIG_OF */
 
