@@ -1059,7 +1059,7 @@ static int assign_irqs(struct platform_device *pdev)
 			return -ENOENT;
 		}
 
-#ifdef CONFIG_OF
+#if 0 //def CONFIG_OF
 		if (!strcmp(irq_res->name, "JOB")) {
 			irqtag = JOB_IRQ_TAG;
 		} else if (!strcmp(irq_res->name, "MMU")) {
@@ -3204,7 +3204,7 @@ static inline void kbase_device_debugfs_term(struct kbase_device *kbdev) { }
 
 static void kbase_device_coherency_init(struct kbase_device *kbdev, u32 gpu_id)
 {
-#ifdef CONFIG_OF
+#if 0 //def CONFIG_OF
 	u32 supported_coherency_bitmap =
 		kbdev->gpu_props.props.raw_props.coherency_mode;
 	const void *coherency_override_dts;
@@ -3214,7 +3214,7 @@ static void kbase_device_coherency_init(struct kbase_device *kbdev, u32 gpu_id)
 	kbdev->system_coherency = COHERENCY_NONE;
 
 	/* device tree may override the coherency */
-#ifdef CONFIG_OF
+#if 0 //def CONFIG_OF
 	coherency_override_dts = of_get_property(kbdev->dev->of_node,
 						"system-coherency",
 						NULL);
@@ -3428,7 +3428,7 @@ static int kbase_platform_device_probe(struct platform_device *pdev)
 	const struct list_head *dev_list;
 	int err = 0;
 
-#ifdef CONFIG_OF
+#if 0 //def CONFIG_OF
 	err = kbase_platform_early_init();
 	if (err) {
 		dev_err(&pdev->dev, "Early platform initialization failed\n");
@@ -3808,7 +3808,7 @@ static const struct dev_pm_ops kbase_pm_ops = {
 #endif /* KBASE_PM_RUNTIME */
 };
 
-#ifdef CONFIG_OF
+#if 0 //def CONFIG_OF
 static const struct of_device_id kbase_dt_ids[] = {
 	{ .compatible = "arm,malit6xx" },
 	{ .compatible = "arm,mali-midgard" },
@@ -3824,7 +3824,9 @@ static struct platform_driver kbase_platform_driver = {
 		   .name = kbase_drv_name,
 		   .owner = THIS_MODULE,
 		   .pm = &kbase_pm_ops,
+#if 0 //def CONFIG_OF
 		   .of_match_table = of_match_ptr(kbase_dt_ids),
+#endif
 	},
 };
 
@@ -3832,7 +3834,7 @@ static struct platform_driver kbase_platform_driver = {
  * The driver will not provide a shortcut to create the Mali platform device
  * anymore when using Device Tree.
  */
-#ifdef CONFIG_OF
+#if 0 //def CONFIG_OF
 module_platform_driver(kbase_platform_driver);
 #else
 

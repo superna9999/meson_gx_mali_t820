@@ -243,7 +243,7 @@ typedef int (*kbase_cpu_clk_speed_func) (u32 *clock_speed);
  */
 typedef int (*kbase_gpu_clk_speed_func) (u32 *clock_speed);
 
-#ifdef CONFIG_OF
+#if 0 //def CONFIG_OF
 struct kbase_platform_config {
 };
 #else
@@ -316,7 +316,7 @@ void kbasep_platform_device_term(struct kbase_device *kbdev);
  */
 int kbase_platform_early_init(void);
 
-#ifndef CONFIG_OF
+#if 1 //ndef CONFIG_OF
 #ifdef CONFIG_MALI_PLATFORM_FAKE
 /**
  * kbase_platform_fake_register - Register a platform device for the GPU

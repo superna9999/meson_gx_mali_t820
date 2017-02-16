@@ -135,7 +135,7 @@ static void init_ipa_groups(struct kbase_ipa_context *ctx)
 	memcpy(ctx->groups, ipa_groups_def, sizeof(ctx->groups));
 }
 
-#if defined(CONFIG_OF) && (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0))
+#if 0 //defined(CONFIG_OF) && (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0))
 static int update_ipa_groups_from_dt(struct kbase_ipa_context *ctx)
 {
 	struct kbase_device *kbdev = ctx->kbdev;
