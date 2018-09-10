@@ -59,6 +59,7 @@
 #include <linux/err.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
+#include <linux/version.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
@@ -94,7 +95,11 @@ struct kbase_platform_config *kbase_get_platform_config(void)
 
 void kbase_platform_prepare_device(struct platform_device *mali_device)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+	of_dma_configure(&mali_device->dev, np, true);
+#else
 	of_dma_configure(&mali_device->dev, np);
+#endif
 
 	pm_runtime_enable(&mali_device->dev);
 }
