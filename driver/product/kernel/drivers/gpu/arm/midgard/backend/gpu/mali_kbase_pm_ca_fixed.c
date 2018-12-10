@@ -13,8 +13,6 @@
  *
  */
 
-
-
 /*
  * A power policy implementing fixed core availability
  */

@@ -74,6 +74,111 @@ static unsigned long opp_translate(struct kbase_device *kbdev,
 	return freq;
 }
 
+#if IS_ENABLED(CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND)
+static struct devfreq_simple_ondemand_data ondemand_data = {
+		.upthreshold = 90,
+		.downdifferential = 5,
+};
+
+#define DEV_FREQ_GOV_DATA		(&ondemand_data)
+
+static ssize_t upthreshold_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", ondemand_data.upthreshold);
+}
+
+static ssize_t upthreshold_store(struct device *dev,
+				 struct device_attribute *attr,
+				 const char *buf, size_t count)
+{
+	unsigned int t;
+	int ret;
+
+	ret = sscanf(buf, "%u", &t);
+	if (ret != 1)
+		return -EINVAL;
+
+	if (t >= 100 || t == 0) {
+		dev_err(dev, "invalid input:%s\n", buf);
+		return -EINVAL;
+	}
+	ondemand_data.upthreshold = t;
+	return count;
+
+}
+static DEVICE_ATTR_RW(upthreshold);
+
+static ssize_t downdifferential_show(struct device *dev,
+				     struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", ondemand_data.downdifferential);
+}
+
+static ssize_t downdifferential_store(struct device *dev,
+				 struct device_attribute *attr,
+				 const char *buf, size_t count)
+{
+	unsigned int t;
+	int ret;
+
+	ret = sscanf(buf, "%u", &t);
+	if (ret != 1)
+		return -EINVAL;
+
+	if (t >= 100 || t == 0) {
+		dev_err(dev, "invalid input:%s\n", buf);
+		return -EINVAL;
+	}
+	ondemand_data.downdifferential = t;
+	return count;
+
+}
+static DEVICE_ATTR_RW(downdifferential);
+#else
+#define DEV_FREQ_GOV_DATA		(NULL)
+#endif /* CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND */
+
+static ssize_t utilisation_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct kbase_device *kbdev = dev_get_drvdata(dev->parent);
+	unsigned long total_time = 0, busy_time = 0;
+	unsigned long utilise;
+
+	kbase_pm_get_dvfs_utilisation(kbdev, &total_time, &busy_time);
+
+	if (total_time == 0) {
+		utilise = 0;
+	} else {
+		/* round up */
+		utilise = (busy_time * 100 + (total_time >> 1)) / total_time;
+	}
+	return sprintf(buf, "%ld\n", utilise);
+}
+static DEVICE_ATTR_RO(utilisation);
+
+static struct device_attribute *kbase_dev_attr[] = {
+#if IS_ENABLED(CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND)
+	&dev_attr_downdifferential,
+	&dev_attr_upthreshold,
+#endif
+	&dev_attr_utilisation
+};
+
+static int kbase_dev_add_attr(struct device *dev)
+{
+	int i, ret;
+	for (i = 0; i <  ARRAY_SIZE(kbase_dev_attr); i++) {
+		if (!kbase_dev_attr[i])
+			continue;
+		ret = device_create_file(dev, kbase_dev_attr[i]);
+		if (ret)
+			return ret;
+	}
+	return ret;
+}
+
 static int
 kbase_devfreq_target(struct device *dev, unsigned long *target_freq, u32 flags)
 {
@@ -336,7 +441,7 @@ int kbase_devfreq_init(struct kbase_device *kbdev)
 		return err;
 
 	kbdev->devfreq = devfreq_add_device(kbdev->dev, dp,
-				"simple_ondemand", NULL);
+				"simple_ondemand", DEV_FREQ_GOV_DATA);
 	if (IS_ERR(kbdev->devfreq)) {
 		kbase_devfreq_term_freq_table(kbdev);
 		return PTR_ERR(kbdev->devfreq);

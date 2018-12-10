@@ -26,6 +26,7 @@
 #include "mali_kbase_pm_ca_devfreq.h"
 #if !MALI_CUSTOMER_RELEASE
 #include "mali_kbase_pm_ca_random.h"
+#include "mali_kbase_pm_ca_demand.h"
 #endif
 
 #include "mali_kbase_pm_always_on.h"
@@ -135,6 +136,7 @@ union kbase_pm_ca_policy_data {
 	struct kbasep_pm_ca_policy_devfreq devfreq;
 #if !MALI_CUSTOMER_RELEASE
 	struct kbasep_pm_ca_policy_random random;
+	struct kbasep_pm_ca_policy_demand demand;
 #endif
 };
 

@@ -46,28 +46,8 @@
 #define MOCKABLE(function) function
 #endif				/* MALI_MOCK_TEST */
 
-/**
- * enum kbasep_pm_action - Actions that can be performed on a core.
- *
- * This enumeration is private to the file. Its values are set to allow
- * core_type_to_reg() function, which decodes this enumeration, to be simpler
- * and more efficient.
- *
- * @ACTION_PRESENT: The cores that are present
- * @ACTION_READY: The cores that are ready
- * @ACTION_PWRON: Power on the cores specified
- * @ACTION_PWROFF: Power off the cores specified
- * @ACTION_PWRTRANS: The cores that are transitioning
- * @ACTION_PWRACTIVE: The cores that are active
- */
-enum kbasep_pm_action {
-	ACTION_PRESENT = 0,
-	ACTION_READY = (SHADER_READY_LO - SHADER_PRESENT_LO),
-	ACTION_PWRON = (SHADER_PWRON_LO - SHADER_PRESENT_LO),
-	ACTION_PWROFF = (SHADER_PWROFF_LO - SHADER_PRESENT_LO),
-	ACTION_PWRTRANS = (SHADER_PWRTRANS_LO - SHADER_PRESENT_LO),
-	ACTION_PWRACTIVE = (SHADER_PWRACTIVE_LO - SHADER_PRESENT_LO)
-};
+/* Special value to indicate that the JM_CONFIG reg isn't currently used. */
+#define KBASE_JM_CONFIG_UNUSED (1<<31)
 
 static u64 kbase_pm_get_state(
 		struct kbase_device *kbdev,
@@ -159,7 +139,7 @@ static void mali_cci_flush_l2(struct kbase_device *kbdev)
  * @cores:     A bit mask of cores to perform the action on (low 32 bits)
  * @action:    The action to perform on the cores
  */
-static void kbase_pm_invoke(struct kbase_device *kbdev,
+void kbase_pm_invoke(struct kbase_device *kbdev,
 					enum kbase_pm_core_type core_type,
 					u64 cores,
 					enum kbasep_pm_action action)
@@ -1364,13 +1344,69 @@ void kbase_pm_cache_snoop_disable(struct kbase_device *kbdev)
 static int kbase_pm_do_reset(struct kbase_device *kbdev)
 {
 	struct kbasep_reset_timeout_data rtdata;
+	u64 core_ready;
+	u64 l2_ready;
+	u64 tiler_ready;
+	u32 value;
 
 	KBASE_TRACE_ADD(kbdev, CORE_GPU_SOFT_RESET, NULL, NULL, 0u, 0);
 
 	KBASE_TLSTREAM_JD_GPU_SOFT_RESET(kbdev);
+  //dev_err(kbdev->dev, "%s,  %d \n", __FILE__, __LINE__);
+  core_ready = kbase_pm_get_ready_cores(kbdev, KBASE_PM_CORE_SHADER);
+  l2_ready = kbase_pm_get_ready_cores(kbdev, KBASE_PM_CORE_L2);
+  tiler_ready = kbase_pm_get_ready_cores(kbdev, KBASE_PM_CORE_TILER);
 
-	kbase_reg_write(kbdev, GPU_CONTROL_REG(GPU_COMMAND),
-						GPU_COMMAND_SOFT_RESET, NULL);
+  //printk("core_ready=%ld, l2_ready=%ld, tiler_ready=%ld\n", core_ready, l2_ready, tiler_ready);
+  if (core_ready)
+          kbase_pm_invoke(kbdev, KBASE_PM_CORE_SHADER, core_ready, ACTION_PWROFF);
+
+  if (l2_ready)
+          kbase_pm_invoke(kbdev, KBASE_PM_CORE_L2, l2_ready, ACTION_PWROFF);
+
+  if (tiler_ready)
+          kbase_pm_invoke(kbdev, KBASE_PM_CORE_TILER, tiler_ready, ACTION_PWROFF);
+  /* do external reset */
+
+//JOHNT
+    if (reg_base_hiubus) {
+        value = Rd(RESET0_MASK);
+        value = value & (~(0x1<<20));
+        //printk("line(%d), value=%x\n", __LINE__, value);
+        Wr(RESET0_MASK, value);
+
+        value = Rd(RESET0_LEVEL);
+        value = value & (~(0x1<<20));
+        //printk("line(%d), value=%x\n", __LINE__, value);
+        Wr(RESET0_LEVEL, value);
+    ///////////////
+        value = Rd(RESET2_MASK);
+        value = value & (~(0x1<<14));
+        //printk("line(%d), value=%x\n", __LINE__, value);
+        Wr(RESET2_MASK, value);
+
+        value = Rd(RESET2_LEVEL);
+        value = value & (~(0x1<<14));
+        //printk("line(%d), value=%x\n", __LINE__, value);
+        Wr(RESET2_LEVEL, value);
+
+        value = Rd(RESET0_LEVEL);
+        value = value | ((0x1<<20));
+        //printk("line(%d), value=%x\n", __LINE__, value);
+        Wr(RESET0_LEVEL, value);
+
+        value = Rd(RESET2_LEVEL);
+        value = value | ((0x1<<14));
+        //printk("line(%d), value=%x\n", __LINE__, value);
+        Wr(RESET2_LEVEL, value);
+    } else {
+		dev_err(kbdev->dev, "reg_base_hiubus is null !!!\n");
+    }
+  //writel(..../*e.g. PWR_RESET, EXTERNAL_PWR_REGISTER*/);
+
+  /* any other action necessary, like a simple delay */
+  kbase_reg_write(kbdev, GPU_CONTROL_REG(PWR_KEY), 0x2968A819, NULL);
+  kbase_reg_write(kbdev, GPU_CONTROL_REG(PWR_OVERRIDE1), 0xfff | (0x20<<16), NULL);
 
 	/* Unmask the reset complete interrupt only */
 	kbase_reg_write(kbdev, GPU_CONTROL_REG(GPU_IRQ_MASK), RESET_COMPLETED,

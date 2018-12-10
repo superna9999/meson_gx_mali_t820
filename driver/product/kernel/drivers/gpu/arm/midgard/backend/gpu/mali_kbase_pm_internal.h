@@ -31,6 +31,31 @@
 
 
 /**
+ * enum kbasep_pm_action - Actions that can be performed on a core.
+ *
+ * This enumeration is private to the file. Its values are set to allow
+ * core_type_to_reg() function, which decodes this enumeration, to be simpler
+ * and more efficient.
+ *
+ * @ACTION_PRESENT: The cores that are present
+ * @ACTION_READY: The cores that are ready
+ * @ACTION_PWRON: Power on the cores specified
+ * @ACTION_PWROFF: Power off the cores specified
+ * @ACTION_PWRTRANS: The cores that are transitioning
+ * @ACTION_PWRACTIVE: The cores that are active
+ */
+enum kbasep_pm_action {
+	ACTION_PRESENT = 0,
+	ACTION_READY = (SHADER_READY_LO - SHADER_PRESENT_LO),
+	ACTION_PWRON = (SHADER_PWRON_LO - SHADER_PRESENT_LO),
+	ACTION_PWROFF = (SHADER_PWROFF_LO - SHADER_PRESENT_LO),
+	ACTION_PWRTRANS = (SHADER_PWRTRANS_LO - SHADER_PRESENT_LO),
+	ACTION_PWRACTIVE = (SHADER_PWRACTIVE_LO - SHADER_PRESENT_LO)
+};
+
+
+
+/**
  * kbase_pm_dev_idle - The GPU is idle.
  *
  * The OS may choose to turn off idle devices
@@ -286,6 +311,24 @@ void kbase_pm_update_cores_state(struct kbase_device *kbdev);
  * @kbdev: The kbase device structure for the device (must be a valid pointer)
  */
 void kbase_pm_cancel_deferred_poweroff(struct kbase_device *kbdev);
+
+/**
+ * kbase_pm_invoke - Invokes an action on a core set
+ *
+ * This function performs the action given by @action on a set of cores of a
+ * type given by @core_type. It is a static function used by
+ * kbase_pm_transition_core_type()
+ *
+ * @kbdev:     The kbase device structure of the device
+ * @core_type: The type of core that the action should be performed on
+ * @cores:     A bit mask of cores to perform the action on (low 32 bits)
+ * @action:    The action to perform on the cores
+ */
+
+void kbase_pm_invoke(struct kbase_device *kbdev,
+					enum kbase_pm_core_type core_type,
+					u64 cores,
+					enum kbasep_pm_action action);
 
 /**
  * kbasep_pm_init_core_use_bitmaps - Initialise data tracking the required
